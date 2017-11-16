@@ -1,4 +1,5 @@
-import React, { Component, PropTypes } from 'react';
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 
 export default class ImageMapper extends Component {
 	constructor(props) {
@@ -52,9 +53,25 @@ export default class ImageMapper extends Component {
 		this.ctx.lineWidth = this.props.lineWidth;
 		if (this.props.onLoad)
 			this.props.onLoad();
+		this.persistSelected();
+	}
+
+	clearCanvas() {
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	}
+
+	persistSelected() {
+		console.log(this.props.map.areas);
+		this.props.map.areas.map((area, index) => {
+			if (this.props.active && area.selected && this['draw' + area.shape]) {
+				this['draw' + area.shape](area.coords.join(','));
+			}
+		});
 	}
 
 	hoverOn(area, index, event) {
+		this.clearCanvas();
+		this.persistSelected();
 		const shape = event.target.getAttribute('shape');
 		if (this.props.active && this['draw' + shape])
 			this['draw' + shape](event.target.getAttribute('coords'));
@@ -63,8 +80,14 @@ export default class ImageMapper extends Component {
 	}
 
 	hoverOff(area, index, event) {
-		if (this.props.active)
-			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		if (this.props.active) {
+			this.clearCanvas();
+			this.props.map.areas.map((area, index) => {
+				if (area.selected && this['draw' + area.shape]) {
+					this['draw' + area.shape](area.coords.join(','));
+				}
+			});
+		}
 		if (this.props.onMouseLeave)
 			this.props.onMouseLeave(area, index, event);
 	}
@@ -72,6 +95,14 @@ export default class ImageMapper extends Component {
 	click(area, index, event) {
 		if (this.props.onClick) {
 			event.preventDefault();
+
+			this.clearCanvas();
+			this.props.map.areas.map((area, index) => {
+				area.selected = false;
+			});
+			area.selected = true;
+			this.persistSelected();
+
 			this.props.onClick(area, index, event);
 		}
 	}
